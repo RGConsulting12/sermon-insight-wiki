@@ -27,6 +27,7 @@ WIKI_DIR = _REPO_ROOT / "wiki"
 GRAPH_DIR = _REPO_ROOT / "graph"
 DATA_DIR = _REPO_ROOT / "data"
 TRANSCRIPTS_DIR = DATA_DIR / "raw_transcripts"
+BIBLES_XML_DIR = DATA_DIR / "bibles" / "xml"
 EMBEDDINGS_PATH = DATA_DIR / "embeddings.json"
 EVIDENCE_MANIFEST_PATH = DATA_DIR / "evidence_manifest.json"
 SCHEMA_PATH = _REPO_ROOT / "KNOWLEDGE_SCHEMA.md"
@@ -38,3 +39,17 @@ INFERENCE_MODEL = os.environ.get("SIW_INFERENCE_MODEL", "gpt-4o-mini")
 
 CHUNK_SIZE = int(os.environ.get("SIW_CHUNK_SIZE", "1000"))
 CHUNK_OVERLAP = int(os.environ.get("SIW_CHUNK_OVERLAP", "200"))
+
+# Comma-separated translation keys matching bundled XML (KJV, NIV, NKJ, NLT)
+SIW_BIBLE_TRANSLATIONS = [
+    x.strip().upper()
+    for x in os.environ.get("SIW_BIBLE_TRANSLATIONS", "KJV,NIV,NLT,NKJ").split(",")
+    if x.strip()
+]
+SIW_SCRIPTURE_ENABLED = os.environ.get("SIW_SCRIPTURE_ENABLED", "true").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+SIW_SCRIPTURE_MAX_REFS = int(os.environ.get("SIW_SCRIPTURE_MAX_REFS", "14"))
+SIW_SCRIPTURE_MAX_VERSES_PER_RANGE = int(os.environ.get("SIW_SCRIPTURE_MAX_VERSES_PER_RANGE", "12"))

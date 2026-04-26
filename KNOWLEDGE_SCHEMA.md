@@ -47,6 +47,10 @@ Saved answers from `/wiki-query` or the API. Must cite `[[...]]` and list chunk 
 
 On ingest, list under `## Contradictions` any claim that conflicts with existing wiki pages, with links.
 
+## Scripture cross-check (bundled translations)
+
+When ingest runs, the pipeline may detect `Book 1:2` style references in the transcript and attach **parallel passages** from local XML (KJV, NIV, NKJ, NLT by default). Source pages should include `## Scripture cross-check` comparing the sermon’s use of each passage to those wordings, naming the translation for each quote.
+
 ## Relationship to RAG
 
 - **Vectors** live in `data/embeddings.json` (chunk text + embeddings).

@@ -13,6 +13,7 @@ from openai import OpenAI
 from sermon_insight_wiki.config import CHAT_MODEL, SCHEMA_PATH, WIKI_DIR, load_env
 from sermon_insight_wiki.evidence import build_absence_report
 from sermon_insight_wiki.retrieval import hybrid_retrieve, wiki_link_closure
+from sermon_insight_wiki.scripture_context import build_scripture_context_block
 from sermon_insight_wiki.semantic_search import SemanticSearch
 
 load_env()
@@ -68,6 +69,14 @@ def run_query(
         for h in fused[:14]
     )
 
+    chunk_blob = "\n\n".join(h["text"][:700] for h in fused[:10])
+    sc_block, sc_meta = build_scripture_context_block(question, chunk_blob)
+    scripture_section = (
+        f"\n\n## Scripture (parallel translations)\n{sc_block}\n"
+        if sc_block
+        else ""
+    )
+
     client = OpenAI()
     prompt = f"""You answer questions about a sermon corpus using evidence chunks and optional wiki pages.
 
@@ -76,7 +85,7 @@ Schema excerpt:
 
 Wiki pages (may be empty):
 {wiki_ctx if wiki_ctx else "(no wiki pages matched)"}
-
+{scripture_section}
 Evidence chunks:
 {evidence_block}
 
@@ -87,6 +96,8 @@ Write JSON with keys:
 - absence_markdown: short section: what was NOT found or weakly supported in the evidence (use the similarity hints honestly).
 - counterfactual_markdown: what would need to be true for the opposite conclusion; which evidence_ids BLOCK that counterfactual (contradict or fail to support), or state if absence means no blocker exists.
 - blocking_analysis: one paragraph plain text summary of blocking / non-support.
+
+When scripture passages are provided above, relate sermon claims to those passages explicitly (translation + verse).
 
 Return ONLY valid JSON."""
 
@@ -114,6 +125,7 @@ Return ONLY valid JSON."""
         "blocking_analysis": parsed.get("blocking_analysis", ""),
         "retrieval": fused,
         "absence_report": absence.to_dict(),
+        "scripture": {"refs": sc_meta, "context_included": bool(sc_block)},
     }
 
     if save_under:

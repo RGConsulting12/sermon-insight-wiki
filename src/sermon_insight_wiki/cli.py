@@ -46,7 +46,8 @@ def query_main() -> None:
     from sermon_insight_wiki.wiki_query import run_query
 
     out = run_query(question, save_under=save if save is not None else None)
-    print(json.dumps({k: v for k, v in out.items() if k != "retrieval"}, indent=2))
+    slim = {k: v for k, v in out.items() if k not in ("retrieval",)}
+    print(json.dumps(slim, indent=2))
     print("\n--- retrieval (first 5) ---\n")
     for row in out.get("retrieval", [])[:5]:
         print(row.get("evidence_id"), row.get("similarity"), row.get("text", "")[:120], "...")

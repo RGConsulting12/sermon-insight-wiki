@@ -34,6 +34,13 @@ pip install -e .
 | `wiki/` | Markdown knowledge base |
 | `graph/graph.json` / `graph.html` | Serialized graph + static visualization |
 | `KNOWLEDGE_SCHEMA.md` | Conventions for agents and tools |
+| `data/bibles/xml/*.xml` | Beblia-format English Bibles (KJV, NIV, NKJ, NLT) for parallel scripture context — see `data/bibles/README.md` for copyright notes |
+
+### Scripture integration
+
+- On **ingest** and **query**, the app scans text for common `Book chapter:verse` references, loads matching verses from the bundled XML, and injects a **parallel translations** block into the LLM prompt.
+- Configure which files are used with `SIW_BIBLE_TRANSLATIONS` (comma-separated: `KJV`, `NIV`, `NKJ`, `NLT`). Disable entirely with `SIW_SCRIPTURE_ENABLED=false`.
+- Query API responses include a `scripture` object listing detected references and whether context was attached.
 
 ## Commands
 

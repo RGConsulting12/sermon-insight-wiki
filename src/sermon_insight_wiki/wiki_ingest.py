@@ -17,6 +17,7 @@ from sermon_insight_wiki.config import (
     load_env,
 )
 from sermon_insight_wiki.evidence import append_claims
+from sermon_insight_wiki.scripture_context import build_scripture_context_block
 from sermon_insight_wiki.semantic_search import SemanticSearch, evidence_id
 
 load_env()
@@ -73,6 +74,13 @@ def ingest_transcript_path(
         for c in top_chunks
     )
 
+    sc_block, _sc_meta = build_scripture_context_block(body[:48000])
+    scripture_section = (
+        f"\n\n## Detected scripture (parallel translations from bundled XML)\n{sc_block}\n"
+        if sc_block
+        else ""
+    )
+
     client = OpenAI()
     prompt = f"""You maintain a sermon insight wiki. Schema / rules:
 {schema}
@@ -87,6 +95,8 @@ Transcript (may be truncated in this message; file path: {transcript_path}):
 
 Suggested evidence chunk anchors (use these ids in the source page Evidence section):
 {evidence_lines}
+{scripture_section}
+When scripture context is present, add a `## Scripture cross-check` section on the source page comparing how the sermon uses each passage to the parallel translations above (tone, emphasis, narrative context). Cite translations by name.
 
 Return a SINGLE JSON object with keys:
 - title (string)
