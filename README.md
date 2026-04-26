@@ -67,7 +67,7 @@ python tools/lint.py --save
 ## HTTP API
 
 ```bash
-export PORT=5055
+export PORT=8025
 python -m sermon_insight_wiki.app
 ```
 
