@@ -33,6 +33,15 @@ def parse_evidence_id(eid: str) -> Tuple[str, int]:
     return vid, int(idx)
 
 
+def embedded_video_ids(cache: Dict[str, List[Dict[str, Any]]]) -> set:
+    """Video IDs that have at least one non-empty embedding chunk."""
+    return {
+        vid
+        for vid, rows in cache.items()
+        if isinstance(rows, list) and len(rows) > 0
+    }
+
+
 class SemanticSearch:
     def __init__(
         self,
@@ -44,7 +53,12 @@ class SemanticSearch:
         self.embeddings_path.parent.mkdir(parents=True, exist_ok=True)
         self._cache: Dict[str, List[Dict[str, Any]]] = {}
         self._load()
-        self._client = OpenAI()
+        self._client: Optional[OpenAI] = None
+
+    def _openai(self) -> OpenAI:
+        if self._client is None:
+            self._client = OpenAI()
+        return self._client
 
     @property
     def embeddings_file(self) -> Path:
@@ -89,7 +103,7 @@ class SemanticSearch:
         return chunks
 
     def _embed(self, text: str) -> Optional[List[float]]:
-        r = self._client.embeddings.create(model=EMBEDDING_MODEL, input=text)
+        r = self._openai().embeddings.create(model=EMBEDDING_MODEL, input=text)
         return list(r.data[0].embedding)
 
     @staticmethod

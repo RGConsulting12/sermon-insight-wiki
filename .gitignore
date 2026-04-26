@@ -24,3 +24,6 @@ graph/graph.html
 graph/.cache.json
 *.log
 .DS_Store
+frontend/node_modules/
+frontend/dist/
+data/display_titles.json

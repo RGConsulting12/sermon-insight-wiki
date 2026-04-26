@@ -71,10 +71,38 @@ python tools/query.py What is the main message? --save syntheses/note.md
 python tools/lint.py --save
 ```
 
+## Web UI (React)
+
+The **sermon-insights-extractor** Vite + React app lives in `frontend/`. It expects the Flask JSON routes under `/api/*` (same contract as Phase 1 of the extractor: `stats`, `videos`, `video`, `repository`, plus **`POST /api/query`** for hybrid RAG).
+
+**Development (hot reload + API proxy):**
+
+```bash
+# Terminal A — API (default port 8025)
+export PORT=8025
+python -m sermon_insight_wiki.app
+
+# Terminal B — UI (proxies /api → VITE_API_PROXY, see frontend/.env.development)
+cd frontend && npm ci && npm run dev
+```
+
+Open the URL Vite prints (usually `http://127.0.0.1:5173`).
+
+**Single-server (Flask serves the built SPA):**
+
+```bash
+cd frontend && npm ci && npm run build
+export PORT=8025
+python -m sermon_insight_wiki.app
+# Open http://127.0.0.1:8025/
+```
+
+The **Pipeline** page is still mostly a UI scaffold (no YouTube pipeline wired in this repo). **Home**, **Library**, **Sermon detail**, and **Ask** use live API data where endpoints exist.
+
 ## HTTP API
 
 ```bash
-export PORT=5055
+export PORT=8025
 python -m sermon_insight_wiki.app
 ```
 
