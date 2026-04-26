@@ -74,7 +74,7 @@ python tools/lint.py --save
 ## HTTP API
 
 ```bash
-export PORT=8025
+export PORT=5055
 python -m sermon_insight_wiki.app
 ```
 
@@ -88,7 +88,7 @@ python -m sermon_insight_wiki.app
 }
 ```
 
-Response includes `answer_markdown`, `absence_markdown`, `counterfactual_markdown`, `blocking_analysis`, `retrieval`, and `absence_report`.
+Response includes `answer_markdown`, `absence_markdown`, `counterfactual_markdown`, `blocking_analysis`, `retrieval`, `absence_report`, and `scripture` (detected refs + whether parallel Bible text was attached).
 
 ## Community detection (Louvain)
 
