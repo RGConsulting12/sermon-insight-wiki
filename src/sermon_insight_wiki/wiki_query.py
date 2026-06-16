@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from openai import OpenAI
+from werkzeug.exceptions import HTTPException
 
 from sermon_insight_wiki.config import CHAT_MODEL, SCHEMA_PATH, WIKI_DIR, load_env
 from sermon_insight_wiki.evidence import build_absence_report
@@ -17,6 +18,82 @@ from sermon_insight_wiki.scripture_context import build_scripture_context_block
 from sermon_insight_wiki.semantic_search import SemanticSearch
 
 load_env()
+
+INVALID_WIKI_PATH_MESSAGE = "Invalid path supplied."
+
+
+class InvalidWikiPath(HTTPException):
+    """HTTP 400 when save_under escapes the wiki/ directory."""
+
+    code = 400
+    description = INVALID_WIKI_PATH_MESSAGE
+
+    def get_body(self, environ=None, scope=None):
+        return json.dumps({"error": INVALID_WIKI_PATH_MESSAGE})
+
+    def get_headers(self, environ=None, scope=None):
+        return [("Content-Type", "application/json")]
+
+
+def safe_wiki_relative_path(path: str) -> str:
+    """Canonicalize a candidate wiki-relative path and confine it under wiki/.
+
+    Threat model
+    ------------
+    ``save_under`` on ``POST /api/query`` is attacker-controlled. Paths may try
+    to escape ``wiki/`` via ``..``, absolute roots (``/etc/passwd``), symlink
+    hops, or Windows-style backslashes on POSIX. This helper is the single gate
+    before any wiki file write.
+
+    Usage
+    -----
+    Always pass the final relative path (after any ``.md`` / ``syntheses/``
+    normalization) through this function before ``mkdir``, ``write_text``, or
+    index updates.
+
+    Guarantee
+    ---------
+    On success, returns a POSIX relative path (no leading slash) whose resolved
+    absolute location is strictly inside the canonical ``wiki/`` root. On
+    failure, raises ``ValueError`` with a generic reason (no internal paths in
+    the message).
+    """
+    if path is None:
+        raise ValueError("empty path")
+    raw = str(path).strip()
+    if not raw:
+        raise ValueError("empty path")
+    if "\0" in raw:
+        raise ValueError("invalid character")
+    if raw.startswith("/") or (len(raw) > 1 and raw[1] == ":"):
+        raise ValueError("absolute path")
+
+    normalized = raw.replace("\\", "/").strip("/")
+    if not normalized:
+        raise ValueError("empty path")
+
+    wiki_root = WIKI_DIR.resolve(strict=False)
+    target = (wiki_root / normalized).resolve(strict=False)
+    try:
+        relative = target.relative_to(wiki_root)
+    except ValueError as exc:
+        raise ValueError("escapes wiki root") from exc
+
+    rel_str = relative.as_posix()
+    if not rel_str or rel_str == ".":
+        raise ValueError("empty path")
+    return rel_str
+
+
+def _resolve_save_under(save_under: str) -> str:
+    raw = save_under.strip()
+    if not raw:
+        raise ValueError("empty path")
+    # Reject escapes in the user-supplied path before syntheses/ wrapping.
+    safe_wiki_relative_path(raw)
+    if raw.endswith(".md"):
+        return safe_wiki_relative_path(raw)
+    return safe_wiki_relative_path(f"syntheses/{raw.strip('/')}.md")
 
 
 def _read(p: Path) -> str:
@@ -51,6 +128,13 @@ def run_query(
     top_k: int = 10,
     save_under: Optional[str] = None,
 ) -> Dict[str, Any]:
+    save_rel: Optional[str] = None
+    if save_under:
+        try:
+            save_rel = _resolve_save_under(save_under)
+        except ValueError:
+            raise InvalidWikiPath() from None
+
     sem = semantic or SemanticSearch()
     hits = hybrid_retrieve(sem, question, top_k=top_k)
     seeds = {h["video_id"] for h in hits[:6]}
@@ -128,11 +212,9 @@ Return ONLY valid JSON."""
         "scripture": {"refs": sc_meta, "context_included": bool(sc_block)},
     }
 
-    if save_under:
+    if save_rel:
         today = date.today().isoformat()
-        rel = save_under.strip().strip("/")
-        if not rel.endswith(".md"):
-            rel = f"syntheses/{rel}.md"
+        rel = save_rel
         path = WIKI_DIR / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         fm = f"""---

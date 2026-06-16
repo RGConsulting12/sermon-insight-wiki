@@ -118,6 +118,8 @@ python -m sermon_insight_wiki.app
 
 Response includes `answer_markdown`, `absence_markdown`, `counterfactual_markdown`, `blocking_analysis`, `retrieval`, `absence_report`, and `scripture` (detected refs + whether parallel Bible text was attached).
 
+**Security:** As of this version, all wiki file saves are guarded from directory traversal. `save_under` must be inside `wiki/`. Escapes get HTTP 400.
+
 ## Community detection (Louvain)
 
 Louvain is a practical default for exploratory topic clusters. If you want stricter structure, rebuild with `siw-graph --no-infer` so communities reflect mostly explicit `[[wikilinks]]`.
